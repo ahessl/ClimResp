@@ -28,7 +28,8 @@ n_path <- paste0("data/chronologies/", site, "_", nonhost, "_crn.txt")
 nh_crn <- read.table(h_path)
 ```
 
-
+### Read in the climate data
+Adjust for treeclim format required
 ```{r read climate}
 
 monthly <- "_monthly.csv"
@@ -48,16 +49,19 @@ monthly_dat <- cbind(year, month, monthly_dat[,-1])
 monthly_dat <- monthly_dat[year!=2018,]
 ```
 
-Response Function in treeclim
+### Response Function in treeclim
 w/bootstrapped confidence intervals
 ```{r dcc calib}
 resp <- dcc(h_crn, monthly_dat, method="correlation", 
             ci = 0.01, selection=6:9, timespan=c(1959, 2010), win_size= 50, boot="exact") 
-coef.cal <- resp$coef
-rownames(coef.cal) <- substr(rownames(coef.cal), 4, 11)
 ```
 
 ```{r plot calib resp}
+#Extract one climate data variable to plot
+coef.cal <- resp$coef[,c(3:5)]
+
+
+
 pdf("products/climResponseCalib.pdf", width=4, height=3)
 palette(c("white", "grey30"))
 barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), las=2, col=factor(coef.cal$significant), ylim=c(0,0.5), ylab="Cor Coef", main="Climate Response (1959-2010)")
