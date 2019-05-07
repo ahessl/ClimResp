@@ -1,0 +1,18 @@
+#read.prism.R
+#Function to read PRISM time series data from a directory
+#Rename the col headings
+
+read.prism <- function(site) {
+    data.path <- "data/climate_data"
+    
+    prism.files <- list.files(data.path) 
+
+    glob.path <- paste0(data.path, "/*.csv")   
+    
+    dataFiles <- lapply(Sys.glob(glob.path), read.csv, skip=11, head=F)
+    
+    
+    climvars <- c("pdate", "ppt", "tmin", "tmean", "tmax")
+    dataFiles <- lapply(dataFiles, setNames, climvars)
+}
+

@@ -1,0 +1,65 @@
+---
+title: "Climate Response Host NonHost"
+author: "A Hessl"
+date: "5/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+library(dplR)
+library(treeclim)
+library(lubridate)
+```
+### Read in the chronologies
+I've tried to make this adaptable for when you have lots of chronologies to read in. You should be able to make a function whose argument is "site". If you have a folder that has 3 files for each site that have a site prefix and either a crn.txt or monthly.csv suffix, we should be able to apply over all of them.
+
+```{r read chrons}
+site <- 'UPT'
+host <- 'ABBA'
+nonhost <- 'PCRU'
+h_path <- paste0("data/chronologies/", site, "_", host, "_crn.txt")
+h_crn <- read.table(h_path)
+
+n_path <- paste0("data/chronologies/", site, "_", nonhost, "_crn.txt")
+nh_crn <- read.table(h_path)
+```
+
+
+```{r read climate}
+
+monthly <- "_monthly.csv"
+clim.path <- paste0("data/climate_data/", site, monthly)
+monthly_dat <- read.csv (clim.path, skip=11, head=F)
+    
+climvars <- c("pdate", "ppt", "tmin", "tmean", "tmax")
+monthly_dat <- setNames(monthly_dat, climvars)
+   
+#Arrange with year, month, data cols for treeclim 
+monthly_dat$pdate <- paste0(monthly_dat$pdate, "-01")
+year <- year(monthly_dat$pdate)
+month <- month(monthly_dat$pdate)
+monthly_dat <- cbind(year, month, monthly_dat[,-1])
+
+#Remove incomplete years (2018)
+monthly_dat <- monthly_dat[year!=2018,]
+```
+
+Response Function in treeclim
+w/bootstrapped confidence intervals
+```{r dcc calib}
+resp <- dcc(h_crn, monthly_dat, method="correlation", 
+            ci = 0.01, selection=6:9, timespan=c(1959, 2010), win_size= 50, boot="exact") 
+coef.cal <- resp$coef
+rownames(coef.cal) <- substr(rownames(coef.cal), 4, 11)
+```
+
+```{r plot calib resp}
+pdf("products/climResponseCalib.pdf", width=4, height=3)
+palette(c("white", "grey30"))
+barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), las=2, col=factor(coef.cal$significant), ylim=c(0,0.5), ylab="Cor Coef", main="Climate Response (1959-2010)")
+dev.off()
+```
