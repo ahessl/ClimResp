@@ -58,15 +58,15 @@ w/bootstrapped confidence intervals
 
 ```{r dcc settings}
 cint <- 0.05
-span <- c(1944, 2016)
-clim_var <- "tmin"
+span <- c(1944, 1980)
+clim_var <- "tmean"
 palette(c("white", "grey30"))
 clim_dcc <- monthly_dat[,c("year", "month", clim_var)]
 ```
 
 ```{r dcc host calib}
-resp <- dcc(h_crn, clim_dcc, method="correlation", 
-            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="exact") 
+resp <- dcc(h_crn, clim_dcc, method="response", 
+            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="stationary") 
 ```
 
 ```{r plot host calib resp}
@@ -80,8 +80,8 @@ barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), cex.names=0.7, la
 ```
 
 ```{r dcc nonhost calib}
-resp <- dcc(nh_crn, clim_dcc, method="correlation", 
-            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="exact") 
+resp <- dcc(nh_crn, clim_dcc, method="response", 
+            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="stationary") 
 ```
 
 ```{r plot nonhost calib resp}
