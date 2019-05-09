@@ -1,9 +1,13 @@
 ---
-title: "Climate Response Host NonHost"
+title: "Climate Response Host & NonHost"
 author: "A Hessl"
 date: "5/7/2019"
 output: html_document
 ---
+Needs all data located in the data folder under two subdirectories (/chronologies and /climate_data). Each file should be named according to following convention:
+site_ABBA_crn.txt
+site_PCRU_crn.txt
+site_monthly.csv
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -25,7 +29,7 @@ h_path <- paste0("data/chronologies/", site, "_", host, "_crn.txt")
 h_crn <- read.table(h_path)
 
 n_path <- paste0("data/chronologies/", site, "_", nonhost, "_crn.txt")
-nh_crn <- read.table(h_path)
+nh_crn <- read.table(n_path)
 ```
 
 ### Read in the climate data
@@ -51,19 +55,40 @@ monthly_dat <- monthly_dat[year!=2018,]
 
 ### Response Function in treeclim
 w/bootstrapped confidence intervals
-```{r dcc calib}
-resp <- dcc(h_crn, monthly_dat, method="correlation", 
-            ci = 0.01, selection=6:9, timespan=c(1959, 2010), win_size= 50, boot="exact") 
+
+```{r dcc settings}
+cint <- 0.05
+span <- c(1944, 2016)
+clim_var <- "tmin"
+palette(c("white", "grey30"))
+clim_dcc <- monthly_dat[,c("year", "month", clim_var)]
 ```
 
-```{r plot calib resp}
-#Extract one climate data variable to plot
+```{r dcc host calib}
+resp <- dcc(h_crn, clim_dcc, method="correlation", 
+            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="exact") 
+```
+
+```{r plot host calib resp}
+#Extract climate variables to plot
 coef.cal <- resp$coef[,c(3:5)]
 
+#pdf("products/HclimResponseCalib.pdf", width=4, height=3)
 
+barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), cex.names=0.7, las=2, col=factor(coef.cal$significant), ylab="Cor Coef", main=paste0("Climate Response ", span[1], "-", span[2])) 
+#dev.off()
+```
 
-pdf("products/climResponseCalib.pdf", width=4, height=3)
-palette(c("white", "grey30"))
-barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), las=2, col=factor(coef.cal$significant), ylim=c(0,0.5), ylab="Cor Coef", main="Climate Response (1959-2010)")
-dev.off()
+```{r dcc nonhost calib}
+resp <- dcc(nh_crn, clim_dcc, method="correlation", 
+            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="exact") 
+```
+
+```{r plot nonhost calib resp}
+#Extract climate variables to plot
+coef.cal <- resp$coef[,c(3:5)]
+
+#pdf("products/NHclimResponseCalib.pdf", width=4, height=3)
+barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), cex.names=0.7, las=2, col=factor(coef.cal$significant), ylab="Cor Coef", main=paste0("Climate Response ", span[1], "-", span[2])) 
+#dev.off()
 ```
