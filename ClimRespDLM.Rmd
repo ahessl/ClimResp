@@ -94,11 +94,11 @@ Identify the runs above/below 0
 ```{r id_events}
   rns <- rle(as.vector(dlm_resid > 0))
   event_vals <- rep(rns$values, rns$lengths)
-  event_len <- rep(rns$lengths, rns$lengths)
+  event_len <- as.numeric(rep(rns$lengths, rns$lengths))
   event_num <- length(rns$values)
   event_ids <- rep(1:event_num, c(rns$lengths))  
   events_df <- cbind(dlm_resid, event_vals, event_len, event_ids)
-  events_pos <- events_df[event_vals==1,]
+  #events_pos <- events_df[event_vals==1,]
 ```
 
 Filter by minimum duration
