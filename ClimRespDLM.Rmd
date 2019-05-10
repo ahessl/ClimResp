@@ -1,0 +1,109 @@
+---
+title: "Climate Response Host & NonHost"
+author: "A Hessl"
+date: "5/7/2019"
+output: html_document
+---
+Needs all data located in the data folder under two subdirectories (/chronologies and /climate_data). Each file should be named according to following convention:
+site_ABBA_crn.txt
+site_PCRU_crn.txt
+site_monthly.csv
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, include=FALSE}
+library(dplR)
+library(treeclim)
+library(lubridate)
+```
+### Read in the chronologies
+I've tried to make this adaptable for when you have lots of chronologies to read in. You should be able to make a function whose argument is "site". If you have a folder that has 3 files for each site that have a site prefix and either a crn.txt or monthly.csv suffix, we should be able to apply over all of them.
+
+```{r read chrons}
+site <- 'UPT'
+host <- 'ABBA'
+nonhost <- 'PCRU'
+h_path <- paste0("data/chronologies/", site, "_", host, "_crn.txt")
+h_crn <- read.table(h_path)
+
+n_path <- paste0("data/chronologies/", site, "_", nonhost, "_crn.txt")
+nh_crn <- read.table(n_path)
+```
+
+### Read in the climate data
+Adjust for treeclim format required
+```{r read climate}
+
+monthly <- "_monthly.csv"
+clim.path <- paste0("data/climate_data/", site, monthly)
+monthly_dat <- read.csv (clim.path, skip=11, head=F)
+    
+climvars <- c("pdate", "ppt", "tmin", "tmean", "tmax")
+monthly_dat <- setNames(monthly_dat, climvars)
+   
+#Arrange with year, month, data cols for treeclim 
+monthly_dat$pdate <- paste0(monthly_dat$pdate, "-01")
+year <- year(monthly_dat$pdate)
+month <- month(monthly_dat$pdate)
+monthly_dat <- cbind(year, month, monthly_dat[,-1])
+
+#Remove incomplete years (2018)
+monthly_dat <- monthly_dat[year!=2018,]
+```
+
+### Response Function in treeclim
+w/bootstrapped confidence intervals
+
+```{r dcc settings}
+cint <- 0.05
+span <- c(1960, 2016)
+clim_var <- "tmin"
+palette(c("white", "grey30"))
+clim_dcc <- monthly_dat[,c("year", "month", clim_var)]
+```
+
+```{r dcc host calib}
+resp <- dcc(h_crn, clim_dcc, method="correlation", 
+            ci = cint, selection=-5:9, timespan=span, win_size= 50, boot="stationary") 
+```
+
+```{r plot host calib resp}
+#Extract climate variables to plot
+coef.cal <- resp$coef[,c(3:5)]
+
+#pdf("products/HclimResponseCalib.pdf", width=4, height=3)
+
+barplot(coef.cal$coef, width=1, names.arg=row.names(coef.cal), cex.names=0.7, las=2, col=factor(coef.cal$significant), ylab="Cor Coef", main=paste0("Climate Response ", span[1], "-", span[2])) 
+#dev.off()
+```
+
+```{r lm season}
+dendro_lm <- dlm(h_crn, clim_dcc, selection=.mean(-6:-8) + .mean(5:8), timespan=span) 
+summary(dendro_lm)
+```
+
+```{r residuals dlm}
+dlm_resid <- dendro_lm$residuals
+year <- seq(span[1],span[2])
+  {plot(year, dlm_resid, type='l')
+  abline(h=0)}
+```
+Identify the runs above/below 0
+```{r id_events}
+  rns <- rle(as.vector(dlm_resid > 0))
+  event_vals <- rep(rns$values, rns$lengths)
+  event_len <- rep(rns$lengths, rns$lengths)
+  event_num <- length(rns$values)
+  event_ids <- rep(1:event_num, c(rns$lengths))  
+  events_df <- cbind(dlm_resid, event_vals, event_len, event_ids)
+  events_pos <- events_df[event_vals==1,]
+```
+
+Filter by minimum duration
+```{r filter events by duration}
+duration = 3
+events_dur <- events_pos[event_len>=2,]
+
+```
